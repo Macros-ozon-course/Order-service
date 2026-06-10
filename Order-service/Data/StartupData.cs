@@ -1,4 +1,7 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Application.Interfaces;
+using Data.DB;
+using Data.Repositories;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Data
 {
@@ -6,7 +9,8 @@ namespace Data
 	{
 		public static void Configure(IServiceCollection services)
 		{
-		
+			services.AddScoped<IConnectionFactory, DbConnectionFactory>();
+			services.AddScoped<IOrderRepository, OrderRepository>();
 		}
 	}
 }

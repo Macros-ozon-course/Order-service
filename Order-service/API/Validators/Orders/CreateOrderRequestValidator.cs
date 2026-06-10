@@ -18,6 +18,10 @@ namespace API.Validators.Orders
 				.NotNull().WithMessage("Order items are required.")
 				.NotEmpty().WithMessage("Order items cannot be empty.");
 
+			RuleFor(x => x)
+				.Must(x => x.Items.Sum(i => i.TotalPrice) == x.TotalAmount)
+				.WithMessage("Total amount must be equal to sum of order items.");
+
 			RuleForEach(x => x.Items)
 				.SetValidator(new CreateOrderItemRequestValidator());
 		}

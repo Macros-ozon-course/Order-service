@@ -1,4 +1,4 @@
-﻿using Application.DTO;
+﻿using Models.Entities;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,8 +7,8 @@ using System.Threading.Tasks;
 
 namespace Application.Interfaces
 {
-	public interface IOrderService
+	public interface IOrderRepository
 	{
-		public Task CreateOrderAsync(Guid buyerId, CreateOrderDTO orderDto, CancellationToken ct);
+		public Task CreateAsync(Order order, CancellationToken ct);
 	}
 }
