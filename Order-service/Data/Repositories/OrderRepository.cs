@@ -140,7 +140,7 @@ namespace Data.Repositories
 			}
 		}
 
-		public async Task<List<Order>> GetOrdersAsync(Guid? userId, CancellationToken ct)
+		public Task<List<Order>> GetOrdersAsync(Guid? userId, CancellationToken ct)
 		{
 			const string sql = """
 		SELECT
@@ -175,10 +175,55 @@ namespace Data.Repositories
 		ORDER BY o.created_at_utc DESC, oi.created_at_utc ASC;
 		""";
 
+			return QueryOrdersAsync(sql, new { UserId = userId }, ct);
+		}
+
+		public async Task<Order?> GetOrderByIdAsync(Guid id, CancellationToken ct)
+		{
+			const string sql = """
+		SELECT
+			o.id AS "OrderId",
+			o.user_id AS "UserId",
+			o.status AS "Status",
+			o.total_amount AS "TotalAmount",
+			o.currency AS "Currency",
+			o.created_at_utc AS "CreatedAtUtc",
+			o.updated_at_utc AS "UpdatedAtUtc",
+			o.paid_at_utc AS "PaidAtUtc",
+			o.collected_at_utc AS "CollectedAtUtc",
+			o.transferred_to_delivery_at_utc AS "TransferredToDeliveryAtUtc",
+			o.delivered_at_utc AS "DeliveredAtUtc",
+			o.canceled_at_utc AS "CanceledAtUtc",
+			o.cancel_reason AS "CancelReason",
+			o.comment AS "Comment",
+			oi.id AS "ItemId",
+			oi.order_id AS "ItemOrderId",
+			oi.product_id AS "ProductId",
+			oi.product_name AS "ProductName",
+			oi.product_image_url AS "ProductImageUrl",
+			oi.sku AS "Sku",
+			oi.quantity AS "Quantity",
+			oi.price_per_item AS "PricePerItem",
+			oi.total_price AS "ItemTotalPrice",
+			oi.seller_id AS "SellerId",
+			oi.created_at_utc AS "ItemCreatedAtUtc"
+		FROM orders o
+		LEFT JOIN order_items oi ON oi.order_id = o.id
+		WHERE o.id = @Id
+		ORDER BY oi.created_at_utc ASC;
+		""";
+
+			var orders = await QueryOrdersAsync(sql, new { Id = id }, ct);
+
+			return orders.FirstOrDefault();
+		}
+
+		private async Task<List<Order>> QueryOrdersAsync(string sql, object? parameters, CancellationToken ct)
+		{
 			using var connection = _connectionFactory.CreateConnection();
 
 			var rows = await connection.QueryAsync<OrderWithItemRow>(
-				new CommandDefinition(sql, new { UserId = userId }, cancellationToken: ct));
+				new CommandDefinition(sql, parameters, cancellationToken: ct));
 
 			var orders = new Dictionary<Guid, Order>();
 

@@ -7,5 +7,7 @@ namespace Application.Interfaces
 		public Task CreateOrderAsync(Guid buyerId, CreateOrderDTO orderDto, CancellationToken ct);
 
 		public Task<List<OrderDTO>> GetOrdersAsync(Guid? userId, CancellationToken ct);
+
+		public Task<OrderDTO?> GetOrderByIdAsync(Guid id, CancellationToken ct);
 	}
 }

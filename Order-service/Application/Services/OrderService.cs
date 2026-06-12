@@ -38,5 +38,17 @@ namespace Application.Services
 				.Select(x => x.ToDto())
 				.ToList();
 		}
+
+		public async Task<OrderDTO?> GetOrderByIdAsync(Guid id, CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+
+			if (id == Guid.Empty)
+				throw new ArgumentException("Order id is required", nameof(id));
+
+			var order = await _orderRepository.GetOrderByIdAsync(id, ct);
+
+			return order?.ToDto();
+		}
 	}
 }

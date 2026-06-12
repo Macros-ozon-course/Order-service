@@ -1,4 +1,4 @@
-﻿using API.Contracts.Orders;
+using API.Contracts.Orders;
 using API.Mappers;
 using Application.Interfaces;
 using FluentValidation;
@@ -26,6 +26,18 @@ namespace API.Controllers
 			var orders = await _orderService.GetOrdersAsync(userId, ct);
 
 			return Ok(orders.Select(x => x.ToResponse()).ToList());
+		}
+
+
+		[HttpGet("{id:guid}")]
+		public async Task<IActionResult> GetOrderById(Guid id, CancellationToken ct)
+		{
+			var order = await _orderService.GetOrderByIdAsync(id, ct);
+
+			if (order is null)
+				return NotFound();
+
+			return Ok(order.ToResponse());
 		}
 
 		[HttpPost]
