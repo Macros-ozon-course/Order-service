@@ -1,11 +1,6 @@
-﻿using Application.DTO;
+using Application.DTO;
 using Application.Interfaces;
 using Application.Mappers;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.Services
 {
@@ -28,6 +23,20 @@ namespace Application.Services
 			var order = newOrder.ToEntity(userId);
 
 			await _orderRepository.CreateAsync(order, ct);
+		}
+
+		public async Task<List<OrderDTO>> GetOrdersAsync(Guid? userId, CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+
+			if (userId == Guid.Empty)
+				throw new ArgumentException("User id is required", nameof(userId));
+
+			var orders = await _orderRepository.GetOrdersAsync(userId, ct);
+
+			return orders
+				.Select(x => x.ToDto())
+				.ToList();
 		}
 	}
 }

@@ -1,4 +1,4 @@
-﻿using Application.DTO;
+using Application.DTO;
 using Models.Entities;
 using Models.Entities.enums;
 
@@ -59,6 +59,28 @@ namespace Application.Mappers
 			};
 		}
 
+		public static OrderDTO ToDto(this Order order)
+		{
+			return new OrderDTO
+			{
+				Id = order.Id,
+				UserId = order.UserId,
+				Status = order.Status,
+				TotalAmount = order.TotalAmount,
+				Currency = order.Currency,
+				CreatedAtUtc = order.CreatedAtUtc,
+				UpdatedAtUtc = order.UpdatedAtUtc,
+				PaidAtUtc = order.PaidAtUtc,
+				CollectedAtUtc = order.CollectedAtUtc,
+				TransferredToDeliveryAtUtc = order.TransferredToDeliveryAtUtc,
+				DeliveredAtUtc = order.DeliveredAtUtc,
+				CanceledAtUtc = order.CanceledAtUtc,
+				CancelReason = order.CancelReason,
+				Comment = order.Comment,
+				Items = order.Items.Select(x => x.ToDto()).ToList()
+			};
+		}
+
 		private static OrderItem ToEntity(this CreateOrderItemDTO dto, Guid orderId, DateTime createdAtUtc)
 		{
 			return new OrderItem
@@ -78,6 +100,24 @@ namespace Application.Mappers
 				SellerId = dto.SellerId,
 
 				CreatedAtUtc = createdAtUtc
+			};
+		}
+
+		private static OrderItemDTO ToDto(this OrderItem item)
+		{
+			return new OrderItemDTO
+			{
+				Id = item.Id,
+				OrderId = item.OrderId,
+				ProductId = item.ProductId,
+				ProductName = item.ProductName,
+				ProductImageUrl = item.ProductImageUrl,
+				Sku = item.Sku,
+				Quantity = item.Quantity,
+				PricePerItem = item.PricePerItem,
+				TotalPrice = item.TotalPrice,
+				SellerId = item.SellerId,
+				CreatedAtUtc = item.CreatedAtUtc
 			};
 		}
 	}

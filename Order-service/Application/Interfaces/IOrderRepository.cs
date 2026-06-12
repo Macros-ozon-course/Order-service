@@ -1,14 +1,11 @@
-﻿using Models.Entities;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Models.Entities;
 
 namespace Application.Interfaces
 {
 	public interface IOrderRepository
 	{
 		public Task CreateAsync(Order order, CancellationToken ct);
+
+		public Task<List<Order>> GetOrdersAsync(Guid? userId, CancellationToken ct);
 	}
 }
