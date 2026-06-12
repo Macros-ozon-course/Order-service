@@ -358,6 +358,124 @@ namespace Data.Repositories
 			return await GetOrderByIdAsync(id, ct);
 		}
 
+
+		public async Task<Order?> CancelAsync(
+			Guid id,
+			Guid? changedByUserId,
+			string reason,
+			string? comment,
+			CancellationToken ct)
+		{
+			const string getCurrentStatusSql = """
+		SELECT
+			status AS "Status"
+		FROM orders
+		WHERE id = @Id
+		FOR UPDATE;
+		""";
+
+			const string updateOrderSql = """
+		UPDATE orders
+		SET
+			status = @CanceledStatus,
+			updated_at_utc = @UpdatedAtUtc,
+			canceled_at_utc = @UpdatedAtUtc,
+			cancel_reason = @Reason,
+			comment = COALESCE(@Comment, comment)
+		WHERE id = @Id;
+		""";
+
+			const string createStatusHistorySql = """
+		INSERT INTO order_status_history
+		(
+			id,
+			order_id,
+			old_status,
+			new_status,
+			changed_at_utc,
+			changed_by_user_id,
+			reason,
+			comment
+		)
+		VALUES
+		(
+			@Id,
+			@OrderId,
+			@OldStatus,
+			@NewStatus,
+			@ChangedAtUtc,
+			@ChangedByUserId,
+			@Reason,
+			@Comment
+		);
+		""";
+
+			var now = DateTime.UtcNow;
+
+			using var connection = _connectionFactory.CreateConnection();
+			connection.Open();
+
+			using var transaction = connection.BeginTransaction();
+
+			try
+			{
+				var currentStatus = await connection.QuerySingleOrDefaultAsync<CurrentOrderStatusRow>(
+					new CommandDefinition(
+						getCurrentStatusSql,
+						new { Id = id },
+						transaction,
+						cancellationToken: ct));
+
+				if (currentStatus is null)
+				{
+					transaction.Rollback();
+					return null;
+				}
+
+				if (!CanCancel(currentStatus.Status))
+				{
+					transaction.Rollback();
+					return await GetOrderByIdAsync(id, ct);
+				}
+
+				var parameters = new
+				{
+					Id = id,
+					CanceledStatus = OrderStatus.Canceled,
+					UpdatedAtUtc = now,
+					Reason = reason,
+					Comment = comment
+				};
+
+				await connection.ExecuteAsync(
+					new CommandDefinition(updateOrderSql, parameters, transaction, cancellationToken: ct));
+
+				var history = new OrderStatusHistory
+				{
+					Id = Guid.NewGuid(),
+					OrderId = id,
+					OldStatus = currentStatus.Status,
+					NewStatus = OrderStatus.Canceled,
+					ChangedAtUtc = now,
+					ChangedByUserId = changedByUserId,
+					Reason = reason,
+					Comment = comment
+				};
+
+				await connection.ExecuteAsync(
+					new CommandDefinition(createStatusHistorySql, history, transaction, cancellationToken: ct));
+
+				transaction.Commit();
+			}
+			catch
+			{
+				transaction.Rollback();
+				throw;
+			}
+
+			return await GetOrderByIdAsync(id, ct);
+		}
+
 		private async Task<List<Order>> QueryOrdersAsync(string sql, object? parameters, CancellationToken ct)
 		{
 			using var connection = _connectionFactory.CreateConnection();
@@ -414,6 +532,12 @@ namespace Data.Repositories
 			}
 
 			return orders.Values.ToList();
+		}
+
+
+		private static bool CanCancel(OrderStatus status)
+		{
+			return status is OrderStatus.Created or OrderStatus.Paid or OrderStatus.Collecting;
 		}
 
 		private sealed class CurrentOrderStatusRow

@@ -27,6 +27,26 @@ namespace API.Mappers
 			};
 		}
 
+
+		public static CancelOrderDTO ToDto(this CancelOrderRequest request)
+		{
+			return new CancelOrderDTO
+			{
+				Reason = request.Reason.Trim(),
+				Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim()
+			};
+		}
+
+		public static CancelOrderResponse ToCancelResponse(this OrderDTO dto)
+		{
+			return new CancelOrderResponse
+			{
+				Id = dto.Id,
+				Status = dto.Status.ToString(),
+				CanceledAtUtc = dto.CanceledAtUtc!.Value
+			};
+		}
+
 		public static OrderResponse ToResponse(this OrderDTO dto)
 		{
 			return new OrderResponse

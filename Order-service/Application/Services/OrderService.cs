@@ -1,6 +1,7 @@
 using Application.DTO;
 using Application.Interfaces;
 using Application.Mappers;
+using Models.Entities.enums;
 
 namespace Application.Services
 {
@@ -50,6 +51,7 @@ namespace Application.Services
 
 			return order?.ToDto();
 		}
+
 		public async Task<OrderDTO?> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusDTO orderStatusDto, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
@@ -68,5 +70,54 @@ namespace Application.Services
 			return order?.ToDto();
 		}
 
+		public async Task<CancelOrderResult> CancelOrderAsync(Guid id, CancelOrderDTO cancelOrderDto, Guid? changedByUserId, CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+
+			if (id == Guid.Empty)
+				throw new ArgumentException("Order id is required", nameof(id));
+
+			var order = await _orderRepository.GetOrderByIdAsync(id, ct);
+			if (order is null)
+				return CancelOrderResult.Failed(CancelOrderError.NotFound);
+
+			var cancellationError = GetCancellationError(order.Status);
+			if (cancellationError.HasValue)
+				return CancelOrderResult.Failed(cancellationError.Value);
+
+			var canceledOrder = await _orderRepository.CancelAsync(
+				id,
+				changedByUserId,
+				cancelOrderDto.Reason,
+				cancelOrderDto.Comment,
+				ct);
+
+			if (canceledOrder is null)
+				return CancelOrderResult.Failed(CancelOrderError.NotFound);
+
+			if (canceledOrder.Status != OrderStatus.Canceled)
+			{
+				var currentCancellationError = GetCancellationError(canceledOrder.Status);
+				return CancelOrderResult.Failed(currentCancellationError ?? CancelOrderError.CannotBeCanceled);
+			}
+
+			return CancelOrderResult.Success(canceledOrder.ToDto());
+		}
+
+		private static CancelOrderError? GetCancellationError(OrderStatus status)
+		{
+			if (status == OrderStatus.Canceled)
+				return CancelOrderError.AlreadyCanceled;
+
+			if (!CanCancel(status))
+				return CancelOrderError.CannotBeCanceled;
+
+			return null;
+		}
+
+		private static bool CanCancel(OrderStatus status)
+		{
+			return status is OrderStatus.Created or OrderStatus.Paid or OrderStatus.Collecting;
+		}
 	}
 }

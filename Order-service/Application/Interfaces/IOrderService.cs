@@ -11,5 +11,7 @@ namespace Application.Interfaces
 		public Task<OrderDTO?> GetOrderByIdAsync(Guid id, CancellationToken ct);
 
 		public Task<OrderDTO?> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusDTO orderStatusDto, CancellationToken ct);
+
+		public Task<CancelOrderResult> CancelOrderAsync(Guid id, CancelOrderDTO cancelOrderDto, Guid? changedByUserId, CancellationToken ct);
 	}
 }
