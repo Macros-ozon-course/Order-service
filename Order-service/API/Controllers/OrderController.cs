@@ -10,14 +10,17 @@ namespace API.Controllers
 	public class OrderController : ControllerBase
 	{
 		private readonly IOrderService _orderService;
-		private readonly IValidator<CreateOrderRequest> _validator;
+		private readonly IValidator<CreateOrderRequest> _createOrderValidator;
+		private readonly IValidator<UpdateOrderStatusRequest> _updateOrderStatusValidator;
 
 		public OrderController(
 			IOrderService orderService,
-			IValidator<CreateOrderRequest> validator)
+			IValidator<CreateOrderRequest> createOrderValidator,
+			IValidator<UpdateOrderStatusRequest> updateOrderStatusValidator)
 		{
 			_orderService = orderService;
-			_validator = validator;
+			_createOrderValidator = createOrderValidator;
+			_updateOrderStatusValidator = updateOrderStatusValidator;
 		}
 
 		[HttpGet]
@@ -40,10 +43,41 @@ namespace API.Controllers
 			return Ok(order.ToResponse());
 		}
 
+		[HttpPatch("{id:guid}/status")]
+		public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequest? request, CancellationToken ct)
+		{
+			if (request is null)
+				return BadRequest(new[]
+				{
+					new
+					{
+						field = nameof(UpdateOrderStatusRequest),
+						message = "Request body is required."
+					}
+				});
+
+			var validationResult = await _updateOrderStatusValidator.ValidateAsync(request, ct);
+			if (!validationResult.IsValid)
+			{
+				return BadRequest(validationResult.Errors.Select(x => new
+				{
+					field = x.PropertyName,
+					message = x.ErrorMessage
+				}));
+			}
+
+			var order = await _orderService.UpdateOrderStatusAsync(id, request.ToDto(), ct);
+
+			if (order is null)
+				return NotFound();
+
+			return Ok(order.ToResponse());
+		}
+
 		[HttpPost]
 		public async Task<IActionResult> CreateOrder(CreateOrderRequest request)
 		{
-			var validationResult = await _validator.ValidateAsync(request);
+			var validationResult = await _createOrderValidator.ValidateAsync(request);
 			if (!validationResult.IsValid)
 			{
 				return BadRequest(validationResult.Errors.Select(x => new

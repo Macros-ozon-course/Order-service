@@ -1,5 +1,6 @@
 using API.Contracts.Orders;
 using Application.DTO;
+using Models.Entities.enums;
 
 namespace API.Mappers
 {
@@ -12,6 +13,17 @@ namespace API.Mappers
 				TotalAmount = request.TotalAmount,
 				Currency = request.Currency.Trim().ToUpperInvariant(),
 				Items = request.Items.Select(x => x.ToDto()).ToList()
+			};
+		}
+
+		public static UpdateOrderStatusDTO ToDto(this UpdateOrderStatusRequest request)
+		{
+			return new UpdateOrderStatusDTO
+			{
+				Status = Enum.Parse<OrderStatus>(request.Status, true),
+				ChangedByUserId = request.ChangedByUserId,
+				Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim(),
+				Comment = string.IsNullOrWhiteSpace(request.Comment) ? null : request.Comment.Trim()
 			};
 		}
 

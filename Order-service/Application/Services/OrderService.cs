@@ -50,5 +50,23 @@ namespace Application.Services
 
 			return order?.ToDto();
 		}
+		public async Task<OrderDTO?> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusDTO orderStatusDto, CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+
+			if (id == Guid.Empty)
+				throw new ArgumentException("Order id is required", nameof(id));
+
+			var order = await _orderRepository.UpdateStatusAsync(
+				id,
+				orderStatusDto.Status,
+				orderStatusDto.ChangedByUserId,
+				orderStatusDto.Reason,
+				orderStatusDto.Comment,
+				ct);
+
+			return order?.ToDto();
+		}
+
 	}
 }

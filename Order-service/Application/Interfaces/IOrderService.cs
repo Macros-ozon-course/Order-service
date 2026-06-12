@@ -9,5 +9,7 @@ namespace Application.Interfaces
 		public Task<List<OrderDTO>> GetOrdersAsync(Guid? userId, CancellationToken ct);
 
 		public Task<OrderDTO?> GetOrderByIdAsync(Guid id, CancellationToken ct);
+
+		public Task<OrderDTO?> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusDTO orderStatusDto, CancellationToken ct);
 	}
 }

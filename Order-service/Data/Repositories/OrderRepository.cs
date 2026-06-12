@@ -218,6 +218,146 @@ namespace Data.Repositories
 			return orders.FirstOrDefault();
 		}
 
+
+		public async Task<Order?> UpdateStatusAsync(
+			Guid id,
+			OrderStatus status,
+			Guid? changedByUserId,
+			string? reason,
+			string? comment,
+			CancellationToken ct)
+		{
+			const string getCurrentStatusSql = """
+		SELECT
+			status AS "Status"
+		FROM orders
+		WHERE id = @Id
+		FOR UPDATE;
+		""";
+
+			const string updateOrderSql = """
+		UPDATE orders
+		SET
+			status = @NewStatus,
+			updated_at_utc = @UpdatedAtUtc,
+			paid_at_utc = CASE
+				WHEN @NewStatus = @PaidStatus AND paid_at_utc IS NULL THEN @UpdatedAtUtc
+				ELSE paid_at_utc
+			END,
+			collected_at_utc = CASE
+				WHEN @NewStatus = @CollectingStatus AND collected_at_utc IS NULL THEN @UpdatedAtUtc
+				ELSE collected_at_utc
+			END,
+			transferred_to_delivery_at_utc = CASE
+				WHEN @NewStatus = @TransferredToDeliveryStatus AND transferred_to_delivery_at_utc IS NULL THEN @UpdatedAtUtc
+				ELSE transferred_to_delivery_at_utc
+			END,
+			delivered_at_utc = CASE
+				WHEN @NewStatus = @DeliveredStatus AND delivered_at_utc IS NULL THEN @UpdatedAtUtc
+				ELSE delivered_at_utc
+			END,
+			canceled_at_utc = CASE
+				WHEN @NewStatus = @CanceledStatus AND canceled_at_utc IS NULL THEN @UpdatedAtUtc
+				ELSE canceled_at_utc
+			END,
+			cancel_reason = CASE
+				WHEN @NewStatus = @CanceledStatus AND @Reason IS NOT NULL THEN @Reason
+				ELSE cancel_reason
+			END,
+			comment = COALESCE(@Comment, comment)
+		WHERE id = @Id;
+		""";
+
+			const string createStatusHistorySql = """
+		INSERT INTO order_status_history
+		(
+			id,
+			order_id,
+			old_status,
+			new_status,
+			changed_at_utc,
+			changed_by_user_id,
+			reason,
+			comment
+		)
+		VALUES
+		(
+			@Id,
+			@OrderId,
+			@OldStatus,
+			@NewStatus,
+			@ChangedAtUtc,
+			@ChangedByUserId,
+			@Reason,
+			@Comment
+		);
+		""";
+
+			var now = DateTime.UtcNow;
+
+			using var connection = _connectionFactory.CreateConnection();
+			connection.Open();
+
+			using var transaction = connection.BeginTransaction();
+
+			try
+			{
+				var currentStatus = await connection.QuerySingleOrDefaultAsync<CurrentOrderStatusRow>(
+					new CommandDefinition(
+						getCurrentStatusSql,
+						new { Id = id },
+						transaction,
+						cancellationToken: ct));
+
+				if (currentStatus is null)
+				{
+					transaction.Rollback();
+					return null;
+				}
+
+				var parameters = new
+				{
+					Id = id,
+					NewStatus = status,
+					PaidStatus = OrderStatus.Paid,
+					CollectingStatus = OrderStatus.Collecting,
+					TransferredToDeliveryStatus = OrderStatus.TransferredToDelivery,
+					DeliveredStatus = OrderStatus.Delivered,
+					CanceledStatus = OrderStatus.Canceled,
+					UpdatedAtUtc = now,
+					Reason = reason,
+					Comment = comment
+				};
+
+				await connection.ExecuteAsync(
+					new CommandDefinition(updateOrderSql, parameters, transaction, cancellationToken: ct));
+
+				var history = new OrderStatusHistory
+				{
+					Id = Guid.NewGuid(),
+					OrderId = id,
+					OldStatus = currentStatus.Status,
+					NewStatus = status,
+					ChangedAtUtc = now,
+					ChangedByUserId = changedByUserId,
+					Reason = reason,
+					Comment = comment
+				};
+
+				await connection.ExecuteAsync(
+					new CommandDefinition(createStatusHistorySql, history, transaction, cancellationToken: ct));
+
+				transaction.Commit();
+			}
+			catch
+			{
+				transaction.Rollback();
+				throw;
+			}
+
+			return await GetOrderByIdAsync(id, ct);
+		}
+
 		private async Task<List<Order>> QueryOrdersAsync(string sql, object? parameters, CancellationToken ct)
 		{
 			using var connection = _connectionFactory.CreateConnection();
@@ -274,6 +414,11 @@ namespace Data.Repositories
 			}
 
 			return orders.Values.ToList();
+		}
+
+		private sealed class CurrentOrderStatusRow
+		{
+			public OrderStatus Status { get; set; }
 		}
 
 		private sealed class OrderWithItemRow
