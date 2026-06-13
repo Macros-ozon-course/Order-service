@@ -14,7 +14,7 @@ namespace Data.Repositories
 			_connectionFactory = connectionFactory;
 		}
 
-		public async Task CreateAsync(Order order, CancellationToken ct)
+		public async Task<Order> CreateAsync(Order order, CancellationToken ct)
 		{
 			const string createOrderSql = """
 		INSERT INTO orders
@@ -24,6 +24,9 @@ namespace Data.Repositories
 			status,
 			total_amount,
 			currency,
+			recipient_name,
+			recipient_phone,
+			delivery_address,
 			created_at_utc,
 			updated_at_utc,
 			paid_at_utc,
@@ -41,6 +44,9 @@ namespace Data.Repositories
 			@Status,
 			@TotalAmount,
 			@Currency,
+			@RecipientName,
+			@RecipientPhone,
+			@DeliveryAddress,
 			@CreatedAtUtc,
 			@UpdatedAtUtc,
 			@PaidAtUtc,
@@ -50,7 +56,8 @@ namespace Data.Repositories
 			@CanceledAtUtc,
 			@CancelReason,
 			@Comment
-		);
+		)
+		RETURNING order_number;
 		""";
 
 			const string createOrderItemSql = """
@@ -116,7 +123,7 @@ namespace Data.Repositories
 
 			try
 			{
-				await connection.ExecuteAsync(
+				order.OrderNumber = await connection.QuerySingleAsync<long>(
 					new CommandDefinition(createOrderSql, order, transaction, cancellationToken: ct));
 
 				foreach (var item in order.Items)
@@ -138,6 +145,8 @@ namespace Data.Repositories
 				transaction.Rollback();
 				throw;
 			}
+
+			return order;
 		}
 
 		public Task<List<Order>> GetOrdersAsync(Guid? userId, CancellationToken ct)
@@ -145,10 +154,14 @@ namespace Data.Repositories
 			const string sql = """
 		SELECT
 			o.id AS "OrderId",
+			o.order_number AS "OrderNumber",
 			o.user_id AS "UserId",
 			o.status AS "Status",
 			o.total_amount AS "TotalAmount",
 			o.currency AS "Currency",
+			o.recipient_name AS "RecipientName",
+			o.recipient_phone AS "RecipientPhone",
+			o.delivery_address AS "DeliveryAddress",
 			o.created_at_utc AS "CreatedAtUtc",
 			o.updated_at_utc AS "UpdatedAtUtc",
 			o.paid_at_utc AS "PaidAtUtc",
@@ -183,10 +196,14 @@ namespace Data.Repositories
 			const string sql = """
 		SELECT
 			o.id AS "OrderId",
+			o.order_number AS "OrderNumber",
 			o.user_id AS "UserId",
 			o.status AS "Status",
 			o.total_amount AS "TotalAmount",
 			o.currency AS "Currency",
+			o.recipient_name AS "RecipientName",
+			o.recipient_phone AS "RecipientPhone",
+			o.delivery_address AS "DeliveryAddress",
 			o.created_at_utc AS "CreatedAtUtc",
 			o.updated_at_utc AS "UpdatedAtUtc",
 			o.paid_at_utc AS "PaidAtUtc",
@@ -257,6 +274,7 @@ namespace Data.Repositories
 
 			var statusHistory = await connection.QueryAsync<OrderStatusHistory>(
 				new CommandDefinition(sql, new { OrderId = orderId }, cancellationToken: ct));
+
 
 			return statusHistory.ToList();
 		}
@@ -535,10 +553,14 @@ namespace Data.Repositories
 					order = new Order
 					{
 						Id = row.OrderId,
+						OrderNumber = row.OrderNumber,
 						UserId = row.UserId,
 						Status = row.Status,
 						TotalAmount = row.TotalAmount,
 						Currency = row.Currency,
+						RecipientName = row.RecipientName,
+						RecipientPhone = row.RecipientPhone,
+						DeliveryAddress = row.DeliveryAddress ?? string.Empty,
 						CreatedAtUtc = row.CreatedAtUtc,
 						UpdatedAtUtc = row.UpdatedAtUtc,
 						PaidAtUtc = row.PaidAtUtc,
@@ -592,6 +614,8 @@ namespace Data.Repositories
 		{
 			public Guid OrderId { get; set; }
 
+			public long OrderNumber { get; set; }
+
 			public Guid UserId { get; set; }
 
 			public OrderStatus Status { get; set; }
@@ -599,6 +623,12 @@ namespace Data.Repositories
 			public decimal TotalAmount { get; set; }
 
 			public string Currency { get; set; } = null!;
+
+			public string? RecipientName { get; set; }
+
+			public string? RecipientPhone { get; set; }
+
+			public string DeliveryAddress { get; set; } = null!;
 
 			public DateTime CreatedAtUtc { get; set; }
 

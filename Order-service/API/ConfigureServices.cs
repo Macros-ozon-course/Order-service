@@ -10,7 +10,7 @@ namespace API
 		public static void Configure(IServiceCollection services, IConfiguration configuration)
 		{
 			StartupApplication.Configure(services, configuration);
-			StartupData.Configure(services);
+			StartupData.Configure(services, configuration);
 
 			services.AddValidatorsFromAssemblyContaining<CreateOrderRequestValidator>();
 		}

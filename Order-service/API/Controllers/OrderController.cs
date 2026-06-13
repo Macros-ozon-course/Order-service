@@ -129,9 +129,19 @@ namespace API.Controllers
 		}
 
 		[HttpPost]
-		public async Task<IActionResult> CreateOrder(CreateOrderRequest request)
+		public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest? request, CancellationToken ct)
 		{
-			var validationResult = await _createOrderValidator.ValidateAsync(request);
+			if (request is null)
+				return BadRequest(new[]
+				{
+					new
+					{
+						field = nameof(CreateOrderRequest),
+						message = "Request body is required."
+					}
+				});
+
+			var validationResult = await _createOrderValidator.ValidateAsync(request, ct);
 			if (!validationResult.IsValid)
 			{
 				return BadRequest(validationResult.Errors.Select(x => new
@@ -141,7 +151,22 @@ namespace API.Controllers
 				}));
 			}
 
-			return Ok();
+			var userId = request.UserId ?? GetChangedByUserId();
+			if (!userId.HasValue)
+			{
+				return BadRequest(new[]
+				{
+					new
+					{
+						field = nameof(CreateOrderRequest.UserId),
+						message = "User ID is required."
+					}
+				});
+			}
+
+			var order = await _orderService.CreateOrderAsync(userId.Value, request.ToDto(), ct);
+
+			return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order.ToResponse());
 		}
 
 		private IActionResult ToCancelOrderErrorResponse(CancelOrderError error)

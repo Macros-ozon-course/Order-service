@@ -23,7 +23,10 @@ namespace Application.Mappers
 				Status = OrderStatus.Created,
 
 				TotalAmount = items.Sum(x => x.TotalPrice),
-				Currency = dto.Currency.Trim().ToUpperInvariant(),
+				Currency = string.IsNullOrWhiteSpace(dto.Currency) ? "RUB" : dto.Currency.Trim().ToUpperInvariant(),
+				RecipientName = string.IsNullOrWhiteSpace(dto.RecipientName) ? null : dto.RecipientName.Trim(),
+				RecipientPhone = string.IsNullOrWhiteSpace(dto.RecipientPhone) ? null : dto.RecipientPhone.Trim(),
+				DeliveryAddress = dto.DeliveryAddress.Trim(),
 
 				CreatedAtUtc = now,
 				UpdatedAtUtc = null,
@@ -64,10 +67,14 @@ namespace Application.Mappers
 			return new OrderDTO
 			{
 				Id = order.Id,
+				OrderNumber = order.OrderNumber,
 				UserId = order.UserId,
 				Status = order.Status,
 				TotalAmount = order.TotalAmount,
 				Currency = order.Currency,
+				RecipientName = order.RecipientName,
+				RecipientPhone = order.RecipientPhone,
+				DeliveryAddress = order.DeliveryAddress,
 				CreatedAtUtc = order.CreatedAtUtc,
 				UpdatedAtUtc = order.UpdatedAtUtc,
 				PaidAtUtc = order.PaidAtUtc,
@@ -106,8 +113,8 @@ namespace Application.Mappers
 
 				ProductId = dto.ProductId,
 				ProductName = dto.ProductName.Trim(),
-				ProductImageUrl = dto.ProductImageUrl,
-				Sku = dto.Sku,
+				ProductImageUrl = string.IsNullOrWhiteSpace(dto.ProductImageUrl) ? null : dto.ProductImageUrl.Trim(),
+				Sku = string.IsNullOrWhiteSpace(dto.Sku) ? null : dto.Sku.Trim(),
 
 				Quantity = dto.Quantity,
 				PricePerItem = dto.PricePerItem,

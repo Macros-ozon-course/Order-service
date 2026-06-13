@@ -8,7 +8,11 @@ namespace API.Contracts.Orders
 
 		public string? OldStatus { get; set; }
 
+		public string? OldStatusText { get; set; }
+
 		public string NewStatus { get; set; } = null!;
+
+		public string NewStatusText { get; set; } = null!;
 
 		public DateTime ChangedAtUtc { get; set; }
 

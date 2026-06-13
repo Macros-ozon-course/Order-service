@@ -4,13 +4,23 @@ namespace API.Contracts.Orders
 	{
 		public Guid Id { get; set; }
 
+		public long OrderNumber { get; set; }
+
 		public Guid UserId { get; set; }
 
 		public string Status { get; set; } = null!;
 
+		public string StatusText { get; set; } = null!;
+
 		public decimal TotalAmount { get; set; }
 
 		public string Currency { get; set; } = null!;
+
+		public string? RecipientName { get; set; }
+
+		public string? RecipientPhone { get; set; }
+
+		public string DeliveryAddress { get; set; } = null!;
 
 		public DateTime CreatedAtUtc { get; set; }
 

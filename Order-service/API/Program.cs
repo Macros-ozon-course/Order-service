@@ -1,4 +1,5 @@
 using API;
+using Data.Migrations;
 
 internal class Program
 {
@@ -26,6 +27,8 @@ internal class Program
 
 		var app = builder.Build();
 
+		DatabaseMigrationRunner.MigrateUp(app.Services);
+
 		// Configure the HTTP request pipeline.
 		if (app.Environment.IsDevelopment())
 		{
@@ -33,6 +36,8 @@ internal class Program
 		}
 
 		app.UseHttpsRedirection();
+
+		app.UseCors();
 
 		app.UseAuthorization();
 

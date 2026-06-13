@@ -14,7 +14,7 @@ namespace Application.Services
 			_orderRepository = orderRepository;
 		}
 
-		public async Task CreateOrderAsync(Guid userId, CreateOrderDTO newOrder, CancellationToken ct)
+		public async Task<OrderDTO> CreateOrderAsync(Guid userId, CreateOrderDTO newOrder, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
 
@@ -22,8 +22,9 @@ namespace Application.Services
 				throw new ArgumentException("User id is required", nameof(userId));
 
 			var order = newOrder.ToEntity(userId);
+			var createdOrder = await _orderRepository.CreateAsync(order, ct);
 
-			await _orderRepository.CreateAsync(order, ct);
+			return createdOrder.ToDto();
 		}
 
 		public async Task<List<OrderDTO>> GetOrdersAsync(Guid? userId, CancellationToken ct)

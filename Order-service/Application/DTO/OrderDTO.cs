@@ -1,12 +1,12 @@
 using Models.Entities.enums;
-using System;
-using System.Collections.Generic;
 
 namespace Application.DTO
 {
 	public class OrderDTO
 	{
 		public Guid Id { get; set; }
+
+		public long OrderNumber { get; set; }
 
 		public Guid UserId { get; set; }
 
@@ -15,6 +15,12 @@ namespace Application.DTO
 		public decimal TotalAmount { get; set; }
 
 		public string Currency { get; set; } = null!;
+
+		public string? RecipientName { get; set; }
+
+		public string? RecipientPhone { get; set; }
+
+		public string DeliveryAddress { get; set; } = null!;
 
 		public DateTime CreatedAtUtc { get; set; }
 
