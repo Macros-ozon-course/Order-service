@@ -48,6 +48,24 @@ namespace API.Controllers
 			return Ok(order.ToResponse());
 		}
 
+		[HttpGet("{id:guid}/status-history")]
+		public async Task<IActionResult> GetOrderStatusHistory(Guid id, CancellationToken ct)
+		{
+			var statusHistory = await _orderService.GetOrderStatusHistoryAsync(id, ct);
+
+			if (statusHistory is null)
+			{
+				return NotFound(new
+				{
+					code = "ORDER_NOT_FOUND",
+					message = "Заказ не найден"
+				});
+			}
+
+			return Ok(statusHistory.Select(x => x.ToResponse()).ToList());
+		}
+
+
 		[HttpPatch("{id:guid}/status")]
 		public async Task<IActionResult> UpdateOrderStatus(Guid id, [FromBody] UpdateOrderStatusRequest? request, CancellationToken ct)
 		{

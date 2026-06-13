@@ -81,6 +81,22 @@ namespace Application.Mappers
 			};
 		}
 
+
+		public static OrderStatusHistoryDTO ToDto(this OrderStatusHistory statusHistory)
+		{
+			return new OrderStatusHistoryDTO
+			{
+				Id = statusHistory.Id,
+				OrderId = statusHistory.OrderId,
+				OldStatus = statusHistory.OldStatus,
+				NewStatus = statusHistory.NewStatus,
+				ChangedAtUtc = statusHistory.ChangedAtUtc,
+				ChangedByUserId = statusHistory.ChangedByUserId,
+				Reason = statusHistory.Reason,
+				Comment = statusHistory.Comment
+			};
+		}
+
 		private static OrderItem ToEntity(this CreateOrderItemDTO dto, Guid orderId, DateTime createdAtUtc)
 		{
 			return new OrderItem

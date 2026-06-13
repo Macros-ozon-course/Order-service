@@ -69,6 +69,22 @@ namespace API.Mappers
 			};
 		}
 
+
+		public static OrderStatusHistoryResponse ToResponse(this OrderStatusHistoryDTO dto)
+		{
+			return new OrderStatusHistoryResponse
+			{
+				Id = dto.Id,
+				OrderId = dto.OrderId,
+				OldStatus = dto.OldStatus?.ToString(),
+				NewStatus = dto.NewStatus.ToString(),
+				ChangedAtUtc = dto.ChangedAtUtc,
+				ChangedByUserId = dto.ChangedByUserId,
+				Reason = dto.Reason,
+				Comment = dto.Comment
+			};
+		}
+
 		private static CreateOrderItemDTO ToDto(this CreateOrderItemRequest request)
 		{
 			return new CreateOrderItemDTO

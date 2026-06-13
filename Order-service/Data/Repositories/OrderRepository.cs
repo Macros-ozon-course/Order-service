@@ -219,6 +219,49 @@ namespace Data.Repositories
 		}
 
 
+		public async Task<bool> ExistsAsync(Guid id, CancellationToken ct)
+		{
+			const string sql = """
+		SELECT EXISTS
+		(
+			SELECT 1
+			FROM orders
+			WHERE id = @Id
+		);
+		""";
+
+			using var connection = _connectionFactory.CreateConnection();
+
+			return await connection.QuerySingleAsync<bool>(
+				new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
+		}
+
+		public async Task<List<OrderStatusHistory>> GetOrderStatusHistoryAsync(Guid orderId, CancellationToken ct)
+		{
+			const string sql = """
+		SELECT
+			id AS "Id",
+			order_id AS "OrderId",
+			old_status AS "OldStatus",
+			new_status AS "NewStatus",
+			changed_at_utc AS "ChangedAtUtc",
+			changed_by_user_id AS "ChangedByUserId",
+			reason AS "Reason",
+			comment AS "Comment"
+		FROM order_status_history
+		WHERE order_id = @OrderId
+		ORDER BY changed_at_utc ASC;
+		""";
+
+			using var connection = _connectionFactory.CreateConnection();
+
+			var statusHistory = await connection.QueryAsync<OrderStatusHistory>(
+				new CommandDefinition(sql, new { OrderId = orderId }, cancellationToken: ct));
+
+			return statusHistory.ToList();
+		}
+
+
 		public async Task<Order?> UpdateStatusAsync(
 			Guid id,
 			OrderStatus status,

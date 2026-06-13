@@ -52,6 +52,25 @@ namespace Application.Services
 			return order?.ToDto();
 		}
 
+
+		public async Task<List<OrderStatusHistoryDTO>?> GetOrderStatusHistoryAsync(Guid id, CancellationToken ct)
+		{
+			ct.ThrowIfCancellationRequested();
+
+			if (id == Guid.Empty)
+				throw new ArgumentException("Order id is required", nameof(id));
+
+			var exists = await _orderRepository.ExistsAsync(id, ct);
+			if (!exists)
+				return null;
+
+			var statusHistory = await _orderRepository.GetOrderStatusHistoryAsync(id, ct);
+
+			return statusHistory
+				.Select(x => x.ToDto())
+				.ToList();
+		}
+
 		public async Task<OrderDTO?> UpdateOrderStatusAsync(Guid id, UpdateOrderStatusDTO orderStatusDto, CancellationToken ct)
 		{
 			ct.ThrowIfCancellationRequested();
